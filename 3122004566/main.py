@@ -28,7 +28,7 @@ def cosine_similarity_between_texts(text1, text2):
 def main():
     # 从命令行获取文件路径
     if len(sys.argv) != 4:
-        print("用法（终端或命令行输入）: python check_plagiarism.py <原文文件路径> <抄袭版文件路径> <输出文件路径>")
+        print("用法（终端或命令行输入）: python main.py <原文文件路径> <抄袭版文件路径> <输出文件路径>")
         return
 
     orig_file_path = sys.argv[1]
