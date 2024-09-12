@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d52ffef3-fccc-470a-b130-e45cb49dcfbf" name="Changes" comment="开始的测试准备" />
+    <list default="true" id="d52ffef3-fccc-470a-b130-e45cb49dcfbf" name="Changes" comment="Openning" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -95,7 +95,7 @@
       <workItem from="1726118636056" duration="2250000" />
       <workItem from="1726120896373" duration="55000" />
       <workItem from="1726120960598" duration="785000" />
-      <workItem from="1726122816470" duration="1789000" />
+      <workItem from="1726122816470" duration="1348000" />
     </task>
     <task id="LOCAL-00001" summary="Openning">
       <option name="closed" value="true" />
@@ -113,15 +113,7 @@
       <option name="project" value="LOCAL" />
       <updated>1726119671193</updated>
     </task>
-    <task id="LOCAL-00003" summary="开始的测试准备">
-      <option name="closed" value="true" />
-      <created>1726124280932</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1726124280932</updated>
-    </task>
-    <option name="localTasksCounter" value="4" />
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -153,7 +145,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/main" />
+                        <option value="master" />
                       </list>
                     </value>
                   </entry>
@@ -167,7 +159,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Openning" />
-    <MESSAGE value="开始的测试准备" />
-    <option name="LAST_COMMIT_MESSAGE" value="开始的测试准备" />
+    <option name="LAST_COMMIT_MESSAGE" value="Openning" />
   </component>
 </project>
