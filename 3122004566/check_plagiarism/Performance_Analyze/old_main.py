@@ -1,8 +1,12 @@
 import sys
+import jieba
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import cProfile
 import pstats
+
+# 创建一个全局的 TfidfVectorizer 实例，避免重复构建词汇表
+vectorizer = TfidfVectorizer(tokenizer=lambda x: jieba.lcut(x))
 
 def read_file(file_path):
     """
@@ -17,7 +21,6 @@ def cosine_similarity_between_texts(text1, text2):
     计算两个文本之间的 Cosine 相似度
     """
     # 使用 TfidfVectorizer 将文本转化为 TF-IDF 向量
-    vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform([text1, text2])
 
     # 计算 Cosine 相似度
@@ -29,7 +32,7 @@ def cosine_similarity_between_texts(text1, text2):
 def main():
     # 从命令行获取文件路径
     if len(sys.argv) != 4:
-        print("用法（终端或命令行输入）: python main.py <原文文件路径> <抄袭版文件路径> <输出文件路径>")
+        print("用法（终端或命令行输入）: python old_main.py <原文文件路径> <抄袭版文件路径> <输出文件路径>")
         return
 
     orig_file_path = sys.argv[1]
@@ -55,4 +58,4 @@ if __name__ == '__main__':
     profiler.enable()
     main()
     profiler.disable()
-    profiler.dump_stats('profile_result.prof')
+    profiler.dump_stats('profile_result_old.prof')
