@@ -56,5 +56,11 @@ class TestPlagiarismDetection(unittest.TestCase):
         with self.assertRaises(Exception):
             cosine_similarity_between_texts(text, "正常文本")
 
+    def test_numeric_input(self):
+        text1 = 12345
+        text2 = "正常文本"
+        with self.assertRaises(AttributeError):
+            cosine_similarity_between_texts(text1, text2)
+
 if __name__ == '__main__':
     unittest.main()
