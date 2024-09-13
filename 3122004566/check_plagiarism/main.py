@@ -1,24 +1,24 @@
 import sys
 import threading
 import re  # 用于正则表达式操作，以便去除标点符号
+import jieba  # 引入 Jieba 分词库
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# 创建一个全局的 TfidfVectorizer 实例，避免重复构建词汇表
-vectorizer = TfidfVectorizer()
-vectorizer_lock = threading.Lock()  # 锁，用于线程安全
+# 停用词列表（使用 list 而非 set）
+stop_words = ['的', '了', '是', '我', '在', '和', '也', '不', '有', '就', '人', '都', '一', '一个']
 
+# 创建一个全局的 TfidfVectorizer 实例，避免重复构建词汇表
+vectorizer = TfidfVectorizer(tokenizer=lambda x: jieba.lcut(x), stop_words=stop_words)
+vectorizer_lock = threading.Lock()  # 锁，用于线程安全
 
 def preprocess_text(text):
     """
-    预处理文本，去除标点符号并转换为小写
+    预处理文本，去除标点符号
     """
     # 去除标点符号
     text = re.sub(r'[^\w\s]', '', text)
-    # 转换为小写
-    text = text.lower()
     return text
-
 
 def read_file(file_path):
     """
@@ -31,12 +31,11 @@ def read_file(file_path):
                 raise ValueError(f"文件 {file_path} 为空。")
             return content
     except FileNotFoundError:
-        print(f"未找到文件 {file_path} ")
+        print(f"未找到文件 {file_path}")
         raise
     except Exception as e:
         print(f"读取文件错误 {file_path}: {e}")
         raise
-
 
 def cosine_similarity_between_texts(text1, text2):
     """
@@ -45,7 +44,7 @@ def cosine_similarity_between_texts(text1, text2):
     try:
         # 使用全局的 vectorizer，需加锁保证线程安全
         with vectorizer_lock:
-            # 由于预处理后词汇表可能变化，需要每次都拟合
+            # 由于每次文本不同，需要重新拟合
             tfidf_matrix = vectorizer.fit_transform([text1, text2])
 
         # 使用稀疏矩阵计算 Cosine 相似度
@@ -54,7 +53,6 @@ def cosine_similarity_between_texts(text1, text2):
     except Exception as e:
         print(f"计算 cosine 相似度错误: {e}")
         raise
-
 
 def main():
     # 从命令行获取文件路径
@@ -85,7 +83,6 @@ def main():
     except Exception as e:
         print(f"写入 {output_file_path} 出错: {e}")
         raise
-
 
 if __name__ == '__main__':
     main()
