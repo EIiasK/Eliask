@@ -5,7 +5,6 @@ import jieba  # 引入 Jieba 分词库
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import cProfile
-import pstats
 
 # 停用词列表（使用 list 而非 set）
 stop_words = ['的', '了', '是', '我', '在', '和', '也', '不', '有', '就', '人', '都', '一', '一个']

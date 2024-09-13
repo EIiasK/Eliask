@@ -3,7 +3,6 @@ import jieba
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import cProfile
-import pstats
 
 # 创建一个全局的 TfidfVectorizer 实例，避免重复构建词汇表
 vectorizer = TfidfVectorizer(tokenizer=lambda x: jieba.lcut(x))

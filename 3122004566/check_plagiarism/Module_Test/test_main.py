@@ -1,9 +1,6 @@
 import sys
 import os
 import unittest
-from unittest.mock import patch, mock_open
-import io
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 # 获取当前文件夹和父目录路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
