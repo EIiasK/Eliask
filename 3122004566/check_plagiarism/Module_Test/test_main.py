@@ -13,7 +13,6 @@ sys.path.insert(0, parent_dir)
 
 from main import cosine_similarity_between_texts  # 导入被测试的函数
 from main import read_file
-from main import main
 
 class TestPlagiarismDetection(unittest.TestCase):
     def test_identical_texts(self):
