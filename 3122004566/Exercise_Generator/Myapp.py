@@ -221,3 +221,13 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+def parse_expression(expr_str):
+    """
+    将字符串形式的算术表达式解析为 Expression 对象。
+    """
+    expr_str = expr_str.replace(' ', '')  # 去除空格
+    tokens = tokenize(expr_str)           # 分词
+    postfix = infix_to_postfix(tokens)    # 中缀表达式转后缀表达式
+    expr = build_expression_tree(postfix) # 构建表达式树
+    return expr
+
