@@ -250,3 +250,61 @@ def parse_number(s):
     else:
         # 处理整数
         return Fraction(int(s))
+
+def tokenize(expr_str):
+    """
+    将表达式字符串分割为标记列表（数字、运算符、括号）。
+    """
+    tokens = []
+    i = 0
+    while i < len(expr_str):
+        if expr_str[i] in '+-*/()':
+            tokens.append(expr_str[i])
+            i += 1
+        else:
+            j = i
+            while j < len(expr_str) and expr_str[j] not in '+-*/()':
+                j += 1
+            tokens.append(expr_str[i:j])
+            i = j
+    return tokens
+
+def infix_to_postfix(tokens):
+    """
+    将中缀表达式的标记列表转换为后缀表达式。
+    """
+    precedence = {'+':1, '-':1, '*':2, '/':2}
+    output = []
+    stack = []
+    for token in tokens:
+        if token not in '+-*/()':
+            output.append(token)
+        elif token == '(':
+            stack.append(token)
+        elif token == ')':
+            while stack and stack[-1] != '(':
+                output.append(stack.pop())
+            stack.pop()  # 弹出左括号
+        else:
+            while stack and stack[-1] != '(' and precedence[token] <= precedence[stack[-1]]:
+                output.append(stack.pop())
+            stack.append(token)
+    while stack:
+        output.append(stack.pop())
+    return output
+
+def build_expression_tree(postfix):
+    """
+    根据后缀表达式构建表达式树。
+    """
+    stack = []
+    for token in postfix:
+        if token not in '+-*/':
+            value = parse_number(token)
+            stack.append(Expression(value=value))
+        else:
+            right = stack.pop()
+            left = stack.pop()
+            expr = Expression(operator=token, left=left, right=right)
+            stack.append(expr)
+    return stack[0]
