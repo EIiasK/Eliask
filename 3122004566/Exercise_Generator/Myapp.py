@@ -87,21 +87,22 @@ class Expression:
 
     def canonical_form(self):
         """
-        获取表达式的规范形式，用于检查重复题目。
-        对于交换律的运算符（加法和乘法），按照操作数排序。
+        获取表达式的规范形式字符串，用于检查重复。
         """
         if self.value is not None:
-            return ('num', self.value)
+            return number_to_string(self.value)
         else:
             left_canonical = self.left.canonical_form()
             right_canonical = self.right.canonical_form()
             if self.operator in ['+', '*']:
                 # 对于加法和乘法，操作数排序
-                operands = [left_canonical, right_canonical]
-                operands.sort()
-                return (self.operator, operands[0], operands[1])
+                operands = sorted([left_canonical, right_canonical])
+                expr_str = f"{operands[0]} {self.operator} {operands[1]}"
             else:
-                return (self.operator, left_canonical, right_canonical)
+                expr_str = f"{left_canonical} {self.operator} {right_canonical}"
+            if self.parenthesis:
+                expr_str = f"({expr_str})"
+            return expr_str
 
 
 def generate_expression(max_operators, range_limit):
