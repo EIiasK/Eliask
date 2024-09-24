@@ -150,9 +150,13 @@ def generate_expression(max_operators, range_limit):
                     except ZeroDivisionError:
                         continue
             else:
-                # 对于加法和乘法，直接生成
+                # 对于加法和乘法，确保左操作数小于等于右操作数
                 left_expr = generate_expression(left_operators, range_limit)
                 right_expr = generate_expression(right_operators, range_limit)
+                left_value = left_expr.evaluate()
+                right_value = right_expr.evaluate()
+                if operator in ['+', '*'] and left_value > right_value:
+                    left_expr, right_expr = right_expr, left_expr
             expr = Expression(operator=operator, left=left_expr, right=right_expr)
             expr.parenthesis = random.choice([True, False])  # 随机决定是否添加括号
             return expr
