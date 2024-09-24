@@ -308,3 +308,36 @@ def build_expression_tree(postfix):
             expr = Expression(operator=token, left=left, right=right)
             stack.append(expr)
     return stack[0]
+
+def grade(exercise_file, answer_file):
+    """
+    批改答案，生成批改结果文件。
+    """
+    with open(exercise_file, 'r', encoding='utf-8') as f_ex:
+        exercises = f_ex.readlines()
+    with open(answer_file, 'r', encoding='utf-8') as f_ans:
+        answers = f_ans.readlines()
+    if len(exercises) != len(answers):
+        print("题目数与答案数不一致。")
+        sys.exit(1)
+    correct = []
+    wrong = []
+    for idx, (ex_line, ans_line) in enumerate(zip(exercises, answers), 1):
+        try:
+            ex_expr = ex_line.strip().rstrip(' =')
+            ans_str = ans_line.strip()
+            expr = parse_expression(ex_expr)
+            correct_answer = expr.evaluate()
+            user_answer = parse_number(ans_str)
+            if correct_answer == user_answer:
+                correct.append(idx)
+            else:
+                wrong.append(idx)
+        except Exception as e:
+            wrong.append(idx)
+    with open('Grade.txt', 'w', encoding='utf-8') as f_grade:
+        f_grade.write(f"Correct: {len(correct)} ({', '.join(map(str, correct))})\n")
+        f_grade.write(f"Wrong: {len(wrong)} ({', '.join(map(str, wrong))})\n")
+
+if __name__ == '__main__':
+    main()
