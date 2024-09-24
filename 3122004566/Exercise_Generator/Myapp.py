@@ -184,3 +184,40 @@ def generate_problems(n, range_limit):
             canonical_forms.add(canonical)
             expressions.append(expr)
     return expressions
+
+def main():
+    """
+    主函数，解析命令行参数并执行相应的功能。
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', type=int, help='生成题目的个数')
+    parser.add_argument('-r', type=int, help='数值范围（不包括该数）')
+    parser.add_argument('-e', type=str, help='题目文件')
+    parser.add_argument('-a', type=str, help='答案文件')
+    args = parser.parse_args()
+
+    if args.n is not None and args.r is not None:
+        # 生成题目模式
+        if args.n <= 0:
+            print("题目个数应为正整数。")
+            sys.exit(1)
+        if args.r <= 1:
+            print("数值范围应大于1。")
+            sys.exit(1)
+        expressions = generate_problems(args.n, args.r)
+        with open('Exercises.txt', 'w', encoding='utf-8') as f_ex:
+            for idx, expr in enumerate(expressions, 1):
+                f_ex.write(f"{expr.to_string()} =\n")  # 写入题目
+        with open('Answers.txt', 'w', encoding='utf-8') as f_ans:
+            for expr in expressions:
+                value = expr.evaluate()
+                ans_str = number_to_string(value)
+                f_ans.write(f"{ans_str}\n")  # 写入答案
+    elif args.e is not None and args.a is not None:
+        # 批改答案模式
+        grade(args.e, args.a)
+    else:
+        # 参数不足，打印帮助信息
+        parser.print_help()
+        sys.exit(1)
+
