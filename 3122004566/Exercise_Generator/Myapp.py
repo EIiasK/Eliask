@@ -19,3 +19,17 @@ def number_to_string(number):
     else:
         # 如果是真分数
         return f"{number.numerator}/{number.denominator}"
+
+def generate_number(range_limit):
+    """
+    生成一个随机的自然数或真分数，范围在 [0, range_limit)。
+    """
+    if random.choice(['natural', 'fraction']) == 'natural':
+        # 生成自然数
+        return Fraction(random.randint(0, range_limit - 1))
+    else:
+        # 生成真分数
+        denominator = random.randint(2, range_limit - 1)  # 分母
+        numerator = random.randint(1, denominator - 1)    # 分子
+        return Fraction(numerator, denominator)
+
