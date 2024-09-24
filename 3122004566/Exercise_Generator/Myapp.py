@@ -1,8 +1,9 @@
 # 四则运算生成程序
 import argparse  # 用于解析命令行参数
-import random    # 用于生成随机数
-import sys       # 用于退出程序
+import random  # 用于生成随机数
+import sys  # 用于退出程序
 from fractions import Fraction  # 用于处理分数
+
 
 def number_to_string(number):
     """
@@ -20,6 +21,7 @@ def number_to_string(number):
         # 如果是真分数
         return f"{number.numerator}/{number.denominator}"
 
+
 def generate_number(range_limit):
     """
     生成一个随机的自然数或真分数，范围在 [0, range_limit)。
@@ -30,7 +32,7 @@ def generate_number(range_limit):
     else:
         # 生成真分数
         denominator = random.randint(2, range_limit - 1)  # 分母
-        numerator = random.randint(1, denominator - 1)    # 分子
+        numerator = random.randint(1, denominator - 1)  # 分子
         return Fraction(numerator, denominator)
 
 
@@ -40,9 +42,9 @@ class Expression:
         表达式类，用于表示算术表达式的树结构。
         """
         self.operator = operator  # 运算符，如 '+', '-', '*', '/'
-        self.left = left          # 左子表达式
-        self.right = right        # 右子表达式
-        self.value = value        # 叶子节点的数值（Fraction 类型）
+        self.left = left  # 左子表达式
+        self.right = right  # 右子表达式
+        self.value = value  # 叶子节点的数值（Fraction 类型）
         self.parenthesis = parenthesis  # 是否添加括号
 
     def evaluate(self):
@@ -100,3 +102,85 @@ class Expression:
                 return (self.operator, operands[0], operands[1])
             else:
                 return (self.operator, left_canonical, right_canonical)
+
+
+def generate_expression(max_operators, range_limit):
+    """
+    递归生成随机的算术表达式，运算符个数不超过 max_operators。
+    """
+    if max_operators == 0:
+        # 基本情况，生成一个数值节点
+        value = generate_number(range_limit)
+        return Expression(value=value)
+    else:
+        if random.choice(['number', 'expression']) == 'number':
+            # 生成数值节点
+            value = generate_number(range_limit)
+            return Expression(value=value)
+        else:
+            # 生成运算符节点
+            operator = random.choice(['+', '-', '*', '/'])
+            left_operators = random.randint(0, max_operators - 1)
+            right_operators = max_operators - 1 - left_operators
+            if operator == '-':
+                # 对于减法，确保左操作数大于等于右操作数
+                while True:
+                    left_expr = generate_expression(left_operators, range_limit)
+                    right_expr = generate_expression(right_operators, range_limit)
+                    try:
+                        left_value = left_expr.evaluate()
+                        right_value = right_expr.evaluate()
+                        if left_value >= right_value:
+                            break
+                    except ZeroDivisionError:
+                        continue
+            elif operator == '/':
+                # 对于除法，确保结果为真分数
+                while True:
+                    left_expr = generate_expression(left_operators, range_limit)
+                    right_expr = generate_expression(right_operators, range_limit)
+                    try:
+                        right_value = right_expr.evaluate()
+                        if right_value == 0:
+                            continue
+                        result = left_expr.evaluate() / right_value
+                        if result.numerator < result.denominator:
+                            break
+                    except ZeroDivisionError:
+                        continue
+            else:
+                # 对于加法和乘法，直接生成
+                left_expr = generate_expression(left_operators, range_limit)
+                right_expr = generate_expression(right_operators, range_limit)
+            expr = Expression(operator=operator, left=left_expr, right=right_expr)
+            expr.parenthesis = random.choice([True, False])  # 随机决定是否添加括号
+            return expr
+
+def generate_valid_expression(max_operators, range_limit):
+    """
+    生成一个有效的算术表达式，确保计算结果非负且不产生除零错误。
+    """
+    while True:
+        expr = generate_expression(max_operators, range_limit)
+        try:
+            value = expr.evaluate()
+            if value < 0:
+                continue
+            return expr
+        except ZeroDivisionError:
+            continue
+
+def generate_problems(n, range_limit):
+    """
+    生成 n 道不重复的算术题目，数值范围在 [0, range_limit)。
+    """
+    expressions = []
+    canonical_forms = set()
+    while len(expressions) < n:
+        expr = generate_valid_expression(3, range_limit)
+        canonical = expr.canonical_form()
+        if canonical not in canonical_forms:
+            # 检查是否重复
+            canonical_forms.add(canonical)
+            expressions.append(expr)
+    return expressions
