@@ -179,12 +179,13 @@ def generate_problems(n, range_limit):
     canonical_forms = set()
     while len(expressions) < n:
         expr = generate_valid_expression(3, range_limit)
-        canonical = expr.canonical_form()
-        if canonical not in canonical_forms:
+        canonical_str = expr.canonical_form()
+        canonical_hash = hash(canonical_str)
+        if canonical_hash not in canonical_forms:
             # 检查是否重复
-            canonical_forms.add(canonical)
+            canonical_forms.add(canonical_hash)
             expressions.append(expr)
-    return expressions
+
 
 def main():
     """
