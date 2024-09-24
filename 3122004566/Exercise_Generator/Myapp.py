@@ -231,3 +231,22 @@ def parse_expression(expr_str):
     expr = build_expression_tree(postfix) # 构建表达式树
     return expr
 
+def parse_number(s):
+    """
+    将字符串形式的数值解析为 Fraction 类型。
+    支持整数、真分数和带分数。
+    """
+    s = s.strip()
+    if "'" in s:
+        # 处理带分数，如 2'3/5
+        whole_str, frac_str = s.split("'")
+        whole = int(whole_str)
+        numerator, denominator = map(int, frac_str.split('/'))
+        return Fraction(whole * denominator + numerator, denominator)
+    elif '/' in s:
+        # 处理真分数，如 3/5
+        numerator, denominator = map(int, s.split('/'))
+        return Fraction(numerator, denominator)
+    else:
+        # 处理整数
+        return Fraction(int(s))
