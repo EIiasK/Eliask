@@ -158,7 +158,7 @@ def canonical_form(expr_str):
             op = tokens[pos]
             pos += 1
             right = parse_term()
-            if op in ('+', '*'):
+            if op in ('+'):
                 # 交换律：排序操作数
                 if expr > right:
                     expr, right = right, expr
@@ -172,9 +172,9 @@ def canonical_form(expr_str):
             op = tokens[pos]
             pos += 1
             right = parse_factor()
-            if op in ('*', '/'):
+            if op in ('*'):
                 # 交换律：排序操作数
-                if expr > right:
+                if term > right:
                     term, right = right, term
             term = f"{term}{op}{right}"
         return term
@@ -343,8 +343,7 @@ def grade(exercise_file, answer_file):
             # 去掉编号
             if '.' in ans_str:
                 ans_str = ans_str.split('.', 1)[1].strip()
-            expr = parse_expression_recursive(tokenize(ex_expr))
-            expr_value = expr
+            expr_value = parse_expression_recursive(tokenize(ex_expr))
             user_answer = parse_number(ans_str)
             if expr_value == user_answer:
                 correct.append(idx)
@@ -394,4 +393,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
