@@ -1,6 +1,6 @@
 # 四则运算生成程序
 import argparse
-import random
+import random     #生成随机数
 import sys
 from fractions import Fraction
 
