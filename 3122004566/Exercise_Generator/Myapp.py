@@ -1,9 +1,8 @@
 # 四则运算生成程序
-import argparse  # 用于解析命令行参数
-import random  # 用于生成随机数
-import sys  # 用于退出程序
-from fractions import Fraction  # 用于处理分数
-
+import argparse
+import random
+import sys
+from fractions import Fraction
 
 def number_to_string(number):
     """
@@ -12,15 +11,16 @@ def number_to_string(number):
     if number.denominator == 1:
         # 如果是整数
         return str(number.numerator)
-    elif number.numerator > number.denominator:
+    elif abs(number.numerator) > number.denominator:
         # 如果是带分数
-        whole = number.numerator // number.denominator  # 整数部分
-        remainder = number.numerator % number.denominator  # 分数部分的分子
-        return f"{whole}'{remainder}/{number.denominator}"
+        whole = abs(number.numerator) // number.denominator  # 整数部分
+        remainder = abs(number.numerator) % number.denominator  # 分数部分的分子
+        sign = '-' if number.numerator < 0 else ''
+        return f"{sign}{whole}'{remainder}/{number.denominator}"
     else:
         # 如果是真分数
-        return f"{number.numerator}/{number.denominator}"
-
+        sign = '-' if number.numerator < 0 else ''
+        return f"{sign}{abs(number.numerator)}/{number.denominator}"
 
 def generate_number(range_limit):
     """
@@ -32,19 +32,17 @@ def generate_number(range_limit):
     else:
         # 生成真分数
         denominator = random.randint(2, range_limit - 1)  # 分母
-        numerator = random.randint(1, denominator - 1)  # 分子
+        numerator = random.randint(1, denominator - 1)    # 分子
         return Fraction(numerator, denominator)
 
-
 class Expression:
-    def __init__(self, operator=None, left=None, right=None, value=None, parenthesis=False):
+    def __init__(self, operator=None, operands=None, value=None, parenthesis=False):
         """
         表达式类，用于表示算术表达式的树结构。
         """
-        self.operator = operator  # 运算符，如 '+', '-', '*', '/'
-        self.left = left  # 左子表达式
-        self.right = right  # 右子表达式
-        self.value = value  # 叶子节点的数值（Fraction 类型）
+        self.operator = operator      # 运算符，如 '+', '-', '*', '/'
+        self.operands = operands      # 操作数列表，对于多元运算符（如左结合的加法）
+        self.value = value            # 叶子节点的数值（Fraction 类型）
         self.parenthesis = parenthesis  # 是否添加括号
 
     def evaluate(self):
@@ -55,17 +53,18 @@ class Expression:
             # 如果是数值节点，直接返回值
             return self.value
         else:
-            # 递归计算左、右子表达式的值
-            left_value = self.left.evaluate()
-            right_value = self.right.evaluate()
-            if self.operator == '+':
-                return left_value + right_value
-            elif self.operator == '-':
-                return left_value - right_value
-            elif self.operator == '*':
-                return left_value * right_value
-            elif self.operator == '/':
-                return left_value / right_value
+            # 递归计算操作数的值
+            result = self.operands[0].evaluate()
+            for operand in self.operands[1:]:
+                if self.operator == '+':
+                    result += operand.evaluate()
+                elif self.operator == '-':
+                    result -= operand.evaluate()
+                elif self.operator == '*':
+                    result *= operand.evaluate()
+                elif self.operator == '/':
+                    result /= operand.evaluate()
+            return result
 
     def to_string(self):
         """
@@ -75,11 +74,15 @@ class Expression:
             # 数值节点，转换为字符串
             return number_to_string(self.value)
         else:
-            # 运算符节点，递归转换左右子表达式
-            left_str = self.left.to_string()
-            right_str = self.right.to_string()
-            op = self.operator
-            expr_str = f"{left_str} {op} {right_str}"
+            # 运算符节点，递归转换操作数
+            if self.operator in ['+', '*']:
+                # 对于左结合的加法和乘法，用运算符连接所有操作数
+                expr_str = f" {self.operator} ".join([operand.to_string() for operand in self.operands])
+            else:
+                # 对于减法和除法，只能是二元运算
+                left_str = self.operands[0].to_string()
+                right_str = self.operands[1].to_string()
+                expr_str = f"{left_str} {self.operator} {right_str}"
             if self.parenthesis:
                 # 如果需要添加括号
                 expr_str = f"({expr_str})"
@@ -87,23 +90,18 @@ class Expression:
 
     def canonical_form(self):
         """
-        获取表达式的规范形式字符串，用于检查重复。
+        获取表达式的规范形式，用于检查重复。
+        对于加法和乘法，考虑左结合性，仅在同一层次上允许操作数交换。
         """
         if self.value is not None:
-            return number_to_string(self.value)
+            return ('num', self.value)
         else:
-            left_canonical = self.left.canonical_form()
-            right_canonical = self.right.canonical_form()
+            # 获取每个操作数的规范形式
+            operands_canonical = [operand.canonical_form() for operand in self.operands]
             if self.operator in ['+', '*']:
-                # 对于加法和乘法，操作数排序
-                operands = sorted([left_canonical, right_canonical])
-                expr_str = f"{operands[0]} {self.operator} {operands[1]}"
-            else:
-                expr_str = f"{left_canonical} {self.operator} {right_canonical}"
-            if self.parenthesis:
-                expr_str = f"({expr_str})"
-            return expr_str
-
+                # 对于加法和乘法，在同一层次上对操作数排序
+                operands_canonical[1:] = sorted(operands_canonical[1:])
+            return (self.operator, tuple(operands_canonical))
 
 def generate_expression(max_operators, range_limit):
     """
@@ -114,52 +112,52 @@ def generate_expression(max_operators, range_limit):
         value = generate_number(range_limit)
         return Expression(value=value)
     else:
-        if random.choice(['number', 'expression']) == 'number':
-            # 生成数值节点
-            value = generate_number(range_limit)
-            return Expression(value=value)
+        # 随机选择运算符
+        operator = random.choice(['+', '-', '*', '/'])
+        if operator in ['+', '*']:
+            # 对于加法和乘法，可以有多个操作数，体现左结合性
+            num_operands = random.randint(2, max_operators + 1)
+            operands = []
+            remaining_operators = max_operators - (num_operands - 1)
+            for _ in range(num_operands):
+                ops = random.randint(0, remaining_operators)
+                remaining_operators -= ops
+                operand = generate_expression(ops, range_limit)
+                operands.append(operand)
+            expr = Expression(operator=operator, operands=operands)
         else:
-            # 生成运算符节点
-            operator = random.choice(['+', '-', '*', '/'])
-            left_operators = random.randint(0, max_operators - 1)
-            right_operators = max_operators - 1 - left_operators
+            # 对于减法和除法，只能是二元运算
+            left_ops = random.randint(0, max_operators - 1)
+            right_ops = max_operators - 1 - left_ops
+            left_expr = generate_expression(left_ops, range_limit)
+            right_expr = generate_expression(right_ops, range_limit)
             if operator == '-':
-                # 对于减法，确保左操作数大于等于右操作数
+                # 确保不出现负数
                 while True:
-                    left_expr = generate_expression(left_operators, range_limit)
-                    right_expr = generate_expression(right_operators, range_limit)
                     try:
-                        left_value = left_expr.evaluate()
-                        right_value = right_expr.evaluate()
-                        if left_value >= right_value:
+                        if left_expr.evaluate() >= right_expr.evaluate():
                             break
+                        else:
+                            left_expr = generate_expression(left_ops, range_limit)
+                            right_expr = generate_expression(right_ops, range_limit)
                     except ZeroDivisionError:
-                        continue
+                        left_expr = generate_expression(left_ops, range_limit)
+                        right_expr = generate_expression(right_ops, range_limit)
             elif operator == '/':
-                # 对于除法，确保结果为真分数
+                # 确保结果是真分数
                 while True:
-                    left_expr = generate_expression(left_operators, range_limit)
-                    right_expr = generate_expression(right_operators, range_limit)
                     try:
-                        right_value = right_expr.evaluate()
-                        if right_value == 0:
-                            continue
-                        result = left_expr.evaluate() / right_value
-                        if result.numerator < result.denominator:
+                        if right_expr.evaluate() != 0 and abs(left_expr.evaluate() / right_expr.evaluate()) < 1:
                             break
+                        else:
+                            left_expr = generate_expression(left_ops, range_limit)
+                            right_expr = generate_expression(right_ops, range_limit)
                     except ZeroDivisionError:
-                        continue
-            else:
-                # 对于加法和乘法，确保左操作数小于等于右操作数
-                left_expr = generate_expression(left_operators, range_limit)
-                right_expr = generate_expression(right_operators, range_limit)
-                left_value = left_expr.evaluate()
-                right_value = right_expr.evaluate()
-                if operator in ['+', '*'] and left_value > right_value:
-                    left_expr, right_expr = right_expr, left_expr
-            expr = Expression(operator=operator, left=left_expr, right=right_expr)
-            expr.parenthesis = random.choice([True, False])  # 随机决定是否添加括号
-            return expr
+                        left_expr = generate_expression(left_ops, range_limit)
+                        right_expr = generate_expression(right_ops, range_limit)
+            expr = Expression(operator=operator, operands=[left_expr, right_expr])
+        expr.parenthesis = random.choice([True, False])  # 随机决定是否添加括号
+        return expr
 
 def generate_valid_expression(max_operators, range_limit):
     """
@@ -175,21 +173,50 @@ def generate_valid_expression(max_operators, range_limit):
         except ZeroDivisionError:
             continue
 
+def expressions_equal(expr1, expr2):
+    """
+    判断两个表达式是否等价，考虑左结合性和有限次交换。
+    """
+    return expr1.canonical_form() == expr2.canonical_form()
+
 def generate_problems(n, range_limit):
     """
     生成 n 道不重复的算术题目，数值范围在 [0, range_limit)。
     """
     expressions = []
     canonical_forms = set()
-    while len(expressions) < n:
+    attempts = 0  # 用于避免无限循环
+    while len(expressions) < n and attempts < n * 10:
         expr = generate_valid_expression(3, range_limit)
-        canonical_str = expr.canonical_form()
-        canonical_hash = hash(canonical_str)
-        if canonical_hash not in canonical_forms:
+        canonical = expr.canonical_form()
+        if canonical not in canonical_forms:
             # 检查是否重复
-            canonical_forms.add(canonical_hash)
+            canonical_forms.add(canonical)
             expressions.append(expr)
+        attempts += 1
+    if len(expressions) < n:
+        print(f"无法生成足够的不重复题目，已生成 {len(expressions)} 道题目。")
+    return expressions
 
+def parse_number(s):
+    """
+    将字符串形式的数值解析为 Fraction 类型。
+    支持整数、真分数和带分数。
+    """
+    s = s.strip()
+    if "'" in s:
+        # 处理带分数，如 2'3/5
+        whole_str, frac_str = s.split("'")
+        whole = int(whole_str)
+        numerator, denominator = map(int, frac_str.split('/'))
+        return Fraction(whole * denominator + numerator, denominator)
+    elif '/' in s:
+        # 处理真分数，如 3/5
+        numerator, denominator = map(int, s.split('/'))
+        return Fraction(numerator, denominator)
+    else:
+        # 处理整数
+        return Fraction(int(s))
 
 def main():
     """
@@ -233,29 +260,8 @@ def parse_expression(expr_str):
     """
     expr_str = expr_str.replace(' ', '')  # 去除空格
     tokens = tokenize(expr_str)           # 分词
-    postfix = infix_to_postfix(tokens)    # 中缀表达式转后缀表达式
-    expr = build_expression_tree(postfix) # 构建表达式树
+    expr, _ = parse_tokens(tokens)
     return expr
-
-def parse_number(s):
-    """
-    将字符串形式的数值解析为 Fraction 类型。
-    支持整数、真分数和带分数。
-    """
-    s = s.strip()
-    if "'" in s:
-        # 处理带分数，如 2'3/5
-        whole_str, frac_str = s.split("'")
-        whole = int(whole_str)
-        numerator, denominator = map(int, frac_str.split('/'))
-        return Fraction(whole * denominator + numerator, denominator)
-    elif '/' in s:
-        # 处理真分数，如 3/5
-        numerator, denominator = map(int, s.split('/'))
-        return Fraction(numerator, denominator)
-    else:
-        # 处理整数
-        return Fraction(int(s))
 
 def tokenize(expr_str):
     """
@@ -275,45 +281,46 @@ def tokenize(expr_str):
             i = j
     return tokens
 
-def infix_to_postfix(tokens):
+def parse_tokens(tokens, index=0):
     """
-    将中缀表达式的标记列表转换为后缀表达式。
+    递归解析标记列表，构建表达式树。
     """
-    precedence = {'+':1, '-':1, '*':2, '/':2}
-    output = []
-    stack = []
-    for token in tokens:
-        if token not in '+-*/()':
-            output.append(token)
-        elif token == '(':
-            stack.append(token)
-        elif token == ')':
-            while stack and stack[-1] != '(':
-                output.append(stack.pop())
-            stack.pop()  # 弹出左括号
+    def parse_operand():
+        nonlocal index
+        token = tokens[index]
+        if token == '(':
+            index += 1
+            expr, _ = parse_expression()
+            if tokens[index] != ')':
+                raise ValueError("缺少右括号")
+            index += 1
+            return expr
         else:
-            while stack and stack[-1] != '(' and precedence[token] <= precedence[stack[-1]]:
-                output.append(stack.pop())
-            stack.append(token)
-    while stack:
-        output.append(stack.pop())
-    return output
-
-def build_expression_tree(postfix):
-    """
-    根据后缀表达式构建表达式树。
-    """
-    stack = []
-    for token in postfix:
-        if token not in '+-*/':
+            index += 1
             value = parse_number(token)
-            stack.append(Expression(value=value))
-        else:
-            right = stack.pop()
-            left = stack.pop()
-            expr = Expression(operator=token, left=left, right=right)
-            stack.append(expr)
-    return stack[0]
+            return Expression(value=value)
+
+    def parse_expression():
+        nonlocal index
+        left = parse_operand()
+        while index < len(tokens) and tokens[index] in '+-*/':
+            op = tokens[index]
+            index += 1
+            right = parse_operand()
+            if op in ['+', '*']:
+                # 左结合性
+                operands = [left, right]
+                while index < len(tokens) and tokens[index] == op:
+                    index += 1
+                    next_operand = parse_operand()
+                    operands.append(next_operand)
+                left = Expression(operator=op, operands=operands)
+            else:
+                left = Expression(operator=op, operands=[left, right])
+        return left, index
+
+    expr, index = parse_expression()
+    return expr, index
 
 def grade(exercise_file, answer_file):
     """
