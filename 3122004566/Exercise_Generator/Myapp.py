@@ -142,6 +142,60 @@ def remove_outer_parentheses(expr):
         break
     return expr
 
+def canonical_form(expr_str):
+    """
+    生成表达式的规范形式，用于检测重复题目。
+    对于具备交换律的运算符（+ 和 *），操作数按升序排列。
+    对于不具备交换律的运算符（- 和 /），保持操作顺序。
+    """
+    tokens = tokenize(expr_str)
+    pos = 0
+
+    def parse_expression():
+        nonlocal pos
+        expr = parse_term()
+        while pos < len(tokens) and tokens[pos] in ('+', '-'):
+            op = tokens[pos]
+            pos += 1
+            right = parse_term()
+            if op in ('+', '*'):
+                # 交换律：排序操作数
+                if expr > right:
+                    expr, right = right, expr
+            expr = f"{expr}{op}{right}"
+        return expr
+
+    def parse_term():
+        nonlocal pos
+        term = parse_factor()
+        while pos < len(tokens) and tokens[pos] in ('*', '/'):
+            op = tokens[pos]
+            pos += 1
+            right = parse_factor()
+            if op in ('*', '/'):
+                # 交换律：排序操作数
+                if expr > right:
+                    term, right = right, term
+            term = f"{term}{op}{right}"
+        return term
+
+    def parse_factor():
+        nonlocal pos
+        token = tokens[pos]
+        if token == '(':
+            pos += 1
+            expr = parse_expression()
+            if pos >= len(tokens) or tokens[pos] != ')':
+                raise ValueError("缺少右括号")
+            pos += 1
+            return f"({expr})"
+        else:
+            pos += 1
+            return token
+
+    canonical = parse_expression()
+    return canonical
+
 def generate_expression(min_operators, max_operators, range_limit, is_outermost=True):
     """
     递归生成随机的算术表达式，运算符个数在[min_operators, max_operators]之间。
@@ -226,7 +280,6 @@ def generate_expression(min_operators, max_operators, range_limit, is_outermost=
             expr = f"({left_expr} {operator} {right_expr})"
         else:
             expr = f"{left_expr} {operator} {right_expr}"
-
         return expr
 
 def generate_valid_expression(min_operators, max_operators, range_limit):
@@ -256,11 +309,9 @@ def generate_problems(n, range_limit):
     while len(expressions) < n:
         try:
             expr = generate_valid_expression(1, 3, range_limit)  # 最少1个运算符，最多3个运算符
-            # 生成规范形式，考虑交换律
-            # 由于乘法和加法具有交换律，减法和除法不具有交换律
-            # 为了简化，这里不处理交换律，仅检查表达式字符串是否唯一
-            if expr not in canonical_forms:
-                canonical_forms.add(expr)
+            canon = canonical_form(expr)
+            if canon not in canonical_forms:
+                canonical_forms.add(canon)
                 expressions.append(expr)
         except ValueError:
             continue  # 重试
@@ -292,7 +343,8 @@ def grade(exercise_file, answer_file):
             # 去掉编号
             if '.' in ans_str:
                 ans_str = ans_str.split('.', 1)[1].strip()
-            expr_value = parse_expression_recursive(tokenize(ex_expr))
+            expr = parse_expression_recursive(tokenize(ex_expr))
+            expr_value = expr
             user_answer = parse_number(ans_str)
             if expr_value == user_answer:
                 correct.append(idx)
@@ -342,3 +394,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
