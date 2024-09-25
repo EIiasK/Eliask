@@ -121,9 +121,31 @@ def parse_expression_recursive(tokens):
     pos = 0
     return parse_expression()
 
-def generate_expression(min_operators, max_operators, range_limit):
+def remove_outer_parentheses(expr):
+    """
+    移除表达式最外层的括号（如果存在）。
+    """
+    while expr.startswith('(') and expr.endswith(')'):
+        # 检查括号是否匹配
+        count = 0
+        for i in range(len(expr)):
+            if expr[i] == '(':
+                count += 1
+            elif expr[i] == ')':
+                count -= 1
+            if count == 0 and i < len(expr) - 1:
+                break
+        else:
+            # 如果整个表达式都在一对括号内，则移除
+            expr = expr[1:-1]
+            continue
+        break
+    return expr
+
+def generate_expression(min_operators, max_operators, range_limit, is_outermost=True):
     """
     递归生成随机的算术表达式，运算符个数在[min_operators, max_operators]之间。
+    仅在必要时添加括号，以确保运算顺序。
     """
     if max_operators == 0:
         # 如果没有可用的运算符数量，返回一个数值节点
@@ -152,8 +174,8 @@ def generate_expression(min_operators, max_operators, range_limit):
             # 对于减法，确保左操作数大于等于右操作数
             attempts = 0
             while True:
-                left_expr = generate_expression(left_operators, left_operators, range_limit)
-                right_expr = generate_expression(right_operators, right_operators, range_limit)
+                left_expr = generate_expression(left_operators, left_operators, range_limit, is_outermost=False)
+                right_expr = generate_expression(right_operators, right_operators, range_limit, is_outermost=False)
                 try:
                     left_value = parse_expression_recursive(tokenize(left_expr))
                     right_value = parse_expression_recursive(tokenize(right_expr))
@@ -169,8 +191,8 @@ def generate_expression(min_operators, max_operators, range_limit):
             # 对于除法，确保结果为真分数
             attempts = 0
             while True:
-                left_expr = generate_expression(left_operators, left_operators, range_limit)
-                right_expr = generate_expression(right_operators, right_operators, range_limit)
+                left_expr = generate_expression(left_operators, left_operators, range_limit, is_outermost=False)
+                right_expr = generate_expression(right_operators, right_operators, range_limit, is_outermost=False)
                 try:
                     right_value = parse_expression_recursive(tokenize(right_expr))
                     if right_value == 0:
@@ -186,26 +208,25 @@ def generate_expression(min_operators, max_operators, range_limit):
                     break
         else:
             # 对于加法和乘法，直接生成
-            left_expr = generate_expression(left_operators, left_operators, range_limit)
-            right_expr = generate_expression(right_operators, right_operators, range_limit)
+            left_expr = generate_expression(left_operators, left_operators, range_limit, is_outermost=False)
+            right_expr = generate_expression(right_operators, right_operators, range_limit, is_outermost=False)
 
         # 根据运算符优先级决定是否添加括号
         # 仅在需要改变默认运算顺序时添加括号
+        # 例如，生成 "5 + 3 * 2" 时，不需要括号，因为乘法优先
+        # 生成 "2 * (3 + 4)" 时，需要括号，以改变运算顺序
         add_parentheses = False
         if operator in ['+', '-']:
-            # 如果当前运算符的优先级低于或等于子运算符的优先级，则需要添加括号
-            # 例如，5 + 3 * 2 应该写成 5 + (3 * 2) 而不是 5 + 3 * 2
-            sub_operators = re.findall(r'[+\-*/]', left_expr + right_expr)
-            if any(op in ['*', '/'] for op in sub_operators):
+            # 如果左右表达式包含 '*' 或 '/', 则需要为其添加括号
+            if re.search(r'[*/]', left_expr) or re.search(r'[*/]', right_expr):
                 add_parentheses = True
-        elif operator in ['*', '/']:
-            # 通常不需要为乘法和除法添加括号，除非有特殊需求
-            add_parentheses = False
+        # 对于 '*' 和 '/', 一般不需要添加括号
 
-        if add_parentheses:
+        if add_parentheses and not is_outermost:
             expr = f"({left_expr} {operator} {right_expr})"
         else:
             expr = f"{left_expr} {operator} {right_expr}"
+
         return expr
 
 def generate_valid_expression(min_operators, max_operators, range_limit):
@@ -214,7 +235,8 @@ def generate_valid_expression(min_operators, max_operators, range_limit):
     """
     attempts = 0
     while True:
-        expr = generate_expression(min_operators, max_operators, range_limit)
+        expr = generate_expression(min_operators, max_operators, range_limit, is_outermost=True)
+        expr = remove_outer_parentheses(expr)  # 移除最外层括号
         try:
             value = parse_expression_recursive(tokenize(expr))
             if value < 0:
@@ -243,42 +265,6 @@ def generate_problems(n, range_limit):
         except ValueError:
             continue  # 重试
     return expressions
-
-def main():
-    """
-    主函数，解析命令行参数并执行相应的功能。
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-n', type=int, help='生成题目的个数')
-    parser.add_argument('-r', type=int, help='数值范围（不包括该数）')
-    parser.add_argument('-e', type=str, help='题目文件')
-    parser.add_argument('-a', type=str, help='答案文件')
-    args = parser.parse_args()
-
-    if args.n is not None and args.r is not None:
-        # 生成题目模式
-        if args.n <= 0:
-            print("题目个数应为正整数。")
-            sys.exit(1)
-        if args.r <= 1:
-            print("数值范围应大于1。")
-            sys.exit(1)
-        expressions = generate_problems(args.n, args.r)
-        with open('Exercises.txt', 'w', encoding='utf-8') as f_ex:
-            for idx, expr in enumerate(expressions, 1):
-                f_ex.write(f"{idx}. {expr} =\n")  # 写入题目，添加编号
-        with open('Answers.txt', 'w', encoding='utf-8') as f_ans:
-            for idx, expr in enumerate(expressions, 1):
-                value = parse_expression_recursive(tokenize(expr))
-                ans_str = number_to_string(value)
-                f_ans.write(f"{idx}. {ans_str}\n")  # 写入答案，添加编号
-    elif args.e is not None and args.a is not None:
-        # 批改答案模式
-        grade(args.e, args.a)
-    else:
-        # 参数不足，打印帮助信息
-        parser.print_help()
-        sys.exit(1)
 
 def grade(exercise_file, answer_file):
     """
@@ -317,6 +303,42 @@ def grade(exercise_file, answer_file):
     with open('Grade.txt', 'w', encoding='utf-8') as f_grade:
         f_grade.write(f"Correct: {len(correct)} ({', '.join(map(str, correct))})\n")
         f_grade.write(f"Wrong: {len(wrong)} ({', '.join(map(str, wrong))})\n")
+
+def main():
+    """
+    主函数，解析命令行参数并执行相应的功能。
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', type=int, help='生成题目的个数')
+    parser.add_argument('-r', type=int, help='数值范围（不包括该数）')
+    parser.add_argument('-e', type=str, help='题目文件')
+    parser.add_argument('-a', type=str, help='答案文件')
+    args = parser.parse_args()
+
+    if args.n is not None and args.r is not None:
+        # 生成题目模式
+        if args.n <= 0:
+            print("题目个数应为正整数。")
+            sys.exit(1)
+        if args.r <= 1:
+            print("数值范围应大于1。")
+            sys.exit(1)
+        expressions = generate_problems(args.n, args.r)
+        with open('Exercises.txt', 'w', encoding='utf-8') as f_ex:
+            for idx, expr in enumerate(expressions, 1):
+                f_ex.write(f"{idx}. {expr} =\n")  # 写入题目，添加编号
+        with open('Answers.txt', 'w', encoding='utf-8') as f_ans:
+            for idx, expr in enumerate(expressions, 1):
+                value = parse_expression_recursive(tokenize(expr))
+                ans_str = number_to_string(value)
+                f_ans.write(f"{idx}. {ans_str}\n")  # 写入答案，添加编号
+    elif args.e is not None and args.a is not None:
+        # 批改答案模式
+        grade(args.e, args.a)
+    else:
+        # 参数不足，打印帮助信息
+        parser.print_help()
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
